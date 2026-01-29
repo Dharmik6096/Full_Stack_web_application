@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  frontend:
+     build: 
+        context: ./frontend 
+     container_name: frontend
+     ports: 
+       - "3000:3000"
+     restart: always
+     healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+     depends_on:
+       mongodb:
+         condition: service_healthy
+       backend:
+         condition: service_healthy
+     networks:
+        - full-stack
+
+  backend:
+     build: 
+       context: ./backend 
+     container_name: backend 
+     ports:
+       - "3500:3500"
+     restart: always
+     env_file:
+       - .env
+     healthcheck:
+      test: ["CMD-SHELL", "nc -zv 0.0.0.0 3500 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+     depends_on:
+       mongodb:
+         condition: service_healthy
+     networks:
+        - full-stack
+
+  mongodb:
+     image: mongodb/mongodb-community-server:8.2-ubi8
+     container_name: mongodb
+     ports: 
+       - "27017:27017"
+     volumes:
+       - mongodb_data:/data/db
+     environment:
+       MONGO_INITDB_ROOT_USERNAME: admin
+       MONGO_INITDB_ROOT_PASSWORD: admin123
+       MONGO_INITDB_DATABASE: appdb
+     restart: always
+     healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+     networks:
+       - full-stack
+
+networks:
+   full-stack:
+
+volumes:
+  mongodb_data:
+
