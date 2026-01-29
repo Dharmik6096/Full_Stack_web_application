@@ -1,0 +1,52 @@
+`pipeline {
+    agent any
+
+    stages {
+        stage('code') {
+            steps {
+                git url:"https://github.com/Dharmik6096/Full_Stack_web_application.git", branch:"main"
+            }
+        }
+        stage('build'){
+            steps {
+               sh '''
+                cd Application-Code
+                pwd
+                docker compose up --build -d
+               '''
+           }
+        }
+        stage('push'){
+            steps{
+                withCredentials([
+            usernamePassword(
+                credentialsId: '',
+                usernameVariable: 'DOCKER_HUB_USERNAME',
+                passwordVariable: 'DOCKER_HUB_PASSWORD'
+            )
+        ]) {
+            sh '''
+            
+            echo "Docker hub loggin...."
+            docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+            
+            echo "Tagging image with build number...."
+            docker tag application-code-frontend:latest \
+              $DOCKER_HUB_USERNAME/fullstack_webapp_frontend:latest
+             
+            docker tag application-code-backend:latest \
+              $DOCKER_HUB_USERNAME/fullstack_webapp_backend:latest
+              
+            echo "Push the code in Dockerhub...."  
+            docker push $DOCKER_HUB_USERNAME/fullstack_webapp_frontend:latest 
+            docker push $DOCKER_HUB_USERNAME/fullstack_webapp_backend:latest
+            
+            echo "Docker hub images pushed successfully!"
+            '''
+        }
+            }
+        }
+    } 
+    
+}
+
